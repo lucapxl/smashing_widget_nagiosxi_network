@@ -1,7 +1,7 @@
 # Veeam Widget for [Smashing](https://smashing.github.io)
 
 [Smashing](https://smashing.github.io) widget that displays a network graph from Nagios XI checks.
-Nagios XI API can return mrtg data we can sue to plot in our smashing dashboard
+Nagios XI API can return rrd data we can sue to plot in our smashing dashboard
 
 ## Example
 TODO
