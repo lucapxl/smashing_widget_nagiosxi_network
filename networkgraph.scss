@@ -1,0 +1,67 @@
+// ----------------------------------------------------------------------------
+// Sass declarations
+// ----------------------------------------------------------------------------
+$background-color:  #444;
+
+$title-color:       rgba(255, 255, 255, 0.7);
+$moreinfo-color:    rgba(255, 255, 255, 0.3);
+$tick-color:        rgba(255, 255, 255, 0.3);
+
+
+// ----------------------------------------------------------------------------
+// Widget-graph styles
+// ----------------------------------------------------------------------------
+.widget-networkgraph {
+
+  background-color: $background-color;
+  position: relative;
+
+
+  svg {
+    position: absolute;
+    opacity: 0.75;
+    fill-opacity: 0.75;
+    left: 0px;
+    top: 0px;
+  }
+
+  .title {
+    position: absolute;
+    width: 100%;
+    left: auto;
+    top: 25px;
+  }
+
+  .value {
+    position: absolute;
+    width: 100%;
+    left: auto;
+    top: 65px;
+
+    font-size: 20px;
+    text-transform: none;
+    font-weight: 400;
+  }
+
+  .more-info {
+    color: $moreinfo-color;
+    font-weight: 600;
+    font-size: 20px;
+    margin-top: 0;
+  }
+
+  .x_tick {
+    display: none
+  }
+
+  .y_ticks {
+    font-size: 13px;
+    fill: $tick-color;
+    fill-opacity: 1;
+  }
+
+  .domain {
+    display: none;
+  }
+
+}
