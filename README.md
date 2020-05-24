@@ -1,4 +1,4 @@
-# Veeam Widget for [Smashing](https://smashing.github.io)
+# Network graph from NAGIOS XI bandwith -  Widget for [Smashing](https://smashing.github.io)
 
 [Smashing](https://smashing.github.io) widget that displays a network graph from Nagios XI checks.
 Nagios XI API can return rrd data we can sue to plot in our smashing dashboard
@@ -26,22 +26,37 @@ for example, if your smashing installation directory is in ```/opt/dashboard/```
 $ ln -s /opt/dashboard/widgets/networkgraph/jobs/networkgraph.rb /opt/dashboard/jobs/networkgraph.rb
 ```
 
-configure `jobs/networkgraph.rb` job file for your environment:
+configure `jobs/networkgraph.rb` job file for your environment. ```toGraph``` is an array of hashes that contains all the different bandwidth you need to monitor. "reference" is the ```data-id``` of the block you need to send the data to. ```host``` and ```service``` refer to the nagios XI item to retrieve
 
 ```ruby
 apiKey = 'xxxxxxx' # The API Key generated in your Nagios XI
 nagiosHOST = 'your.nagiosxihost.name' # IP Address or Hostname of your Nagios XI server
-monitoredhostname = 'C1002ASA01' #Hostname configured in Nagios. this is usually the firewall/router/switch you need to get the graph from
-servicedescription = 'Ext_500_V977%20Bandwidth' # The nagios service name. when using the nagios wizard it usually ends with 'Bandwidth'. 
+toGraph = [
+    {
+        "reference" => :network500, # data-id block where to send the data to. see below
+        "host"      => "C1002ASA01", # the name of the host in nagios XI
+        "service"   => "Ext_500_V977%20Bandwidth" # the "bandwidth" service you need to monitor
+    },
+    {
+        "reference" => :network100,
+        "host"      => "C1002ASA01",
+        "service"   => "Ext_100_V988%20Bandwidth"
+    }
+]
+
 ```
 
 add the tile in your dashboard .erb file
-```data-max``` should contain the maximum bandwidth to display. in this example is 500Mb
+```data-max``` should contain the maximum bandwidth to display. in this example is 500Mb or 100Mb respectively for 2 different internet lines monitored.
+```data-id``` should refer to the same ```reference``` in the ```networkgraph.rb``` job file
 
 ```html
     <li data-row="2" data-col="1" data-sizex="1" data-sizey="1">
-      <div data-id="networkgraph" data-view="Networkgraph" data-title="Internet" data-graphtype="line" data-max="500"></div>
+      <div data-id="network500" data-view="Networkgraph" data-title="Internet 500" data-graphtype="line" data-max="500"></div>
     </li>   
+    <li data-row="3" data-col="1" data-sizex="1" data-sizey="1">
+      <div data-id="network100" data-view="Networkgraph" data-title="Internet 100" data-graphtype="line" data-max="100"></div>
+    </li>    
 ```
 
 ## License

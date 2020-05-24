@@ -1,80 +1,63 @@
 require 'open-uri'
 require 'json'
 
-apiKey = 'xxxxxxx'
+########################################################################################################
+# make sure you edit these variables to fit your environment
+apiKey = 'xxxxxxxxx'
 nagiosHOST = 'x.x.x.x'
+hours = 4
 
-monitoredhostname500 = 'hostname'
-servicedescription500 = 'servicename%20Bandwidth'
-
-monitoredhostname100 = 'hostname2'
-servicedescription100 = 'servicename2%20Bandwith'
+toGraph = [
+    {
+        "reference" => :network500, 
+        "host"      => "C1002ASA01",
+        "service"   => "Ext_500_V977%20Bandwidth"
+    },
+    {
+        "reference" => :network100,
+        "host"      => "C1002ASA01",
+        "service"   => "Ext_100_V988%20Bandwidth"
+    }
+]
+########################################################################################################
 
 arrowDOWN = " <span style='color:#03a1fc'>⬇</span>"
 arrowUP = " <span style='color:#dc5945'>⬆</span>"
-
-network500performanceurl = 'http://' + nagiosHOST + '/nagiosxi/api/v1/objects/servicestatus?apikey=' + apiKey + '&host_name=' + monitoredhostname500 + '&service_description=' + servicedescription500 
-network100performanceurl = 'http://' + nagiosHOST + '/nagiosxi/api/v1/objects/servicestatus?apikey=' + apiKey + '&host_name=' + monitoredhostname100 + '&service_description=' + servicedescription100 
-
-network500urlBase = 'http://' + nagiosHOST + '/nagiosxi/api/v1/objects/rrdexport?apikey=' + apiKey + '&host_name=' + monitoredhostname500 + '&service_description=' + servicedescription500 
-network100urlBase = 'http://' + nagiosHOST + '/nagiosxi/api/v1/objects/rrdexport?apikey=' + apiKey + '&host_name=' + monitoredhostname100 + '&service_description=' + servicedescription100
-
-data500UP = Array.new
-data500DOWN = Array.new
-
-data100UP = Array.new
-data100DOWN = Array.new
+data_UP = Array.new
+data_DOWN = Array.new
 
 SCHEDULER.every "60s", first_in: 0 do |job|
-    
-    data500UP.clear
-    data500DOWN.clear
-    data100DOWN.clear
-    data100UP.clear
-    data500Info = ''
 
-    hours = 4
     start = DateTime.now - (hours/24.0)
     start = start.to_time.to_i
 
-    network500url = network500urlBase + '&start=' + start.to_s
-    network100url = network100urlBase + '&start=' + start.to_s
+    toGraph.each do |graphchild|
+        data_UP.clear
+        data_DOWN.clear
+        data_INFO = ''
 
-    # getting data point to create the graph
-    resp = Net::HTTP.get_response(URI.parse(network500url))
-    jsonData = resp.body
-    networkData500 = JSON.parse(jsonData)
-    counter = 0
-    networkData500['data']['row'].each do |child|
-        if child['v'][0] != "NaN" and child['v'][1] != "NaN"
-            data500UP.push({ "x" => counter, "y" => child['v'][0].to_f})
-            data500DOWN.push({ "x" => counter, "y" => child['v'][1].to_f})
-            counter += 1
+        # getting data point to create the graph
+        network_url = 'http://' + nagiosHOST + '/nagiosxi/api/v1/objects/rrdexport?apikey=' + apiKey + '&host_name=' + graphchild['host'] + '&service_description=' + graphchild['service'] + '&start=' + start.to_s
+
+        performance_url = 'http://' + nagiosHOST + '/nagiosxi/api/v1/objects/servicestatus?apikey=' + apiKey + '&host_name=' + graphchild['host'] + '&service_description=' + graphchild['service'] 
+
+        resp = Net::HTTP.get_response(URI.parse(network_url))
+        jsonData = resp.body
+        network_data = JSON.parse(jsonData)
+        counter = 0
+        network_data['data']['row'].each do |child|
+            if child['v'][0] != "NaN" and child['v'][1] != "NaN"
+                data_UP.push({ "x" => counter, "y" => child['v'][0].to_f})
+                data_DOWN.push({ "x" => counter, "y" => child['v'][1].to_f})
+                counter += 1
+            end
         end
+        # getting performance data to display
+        resp = Net::HTTP.get_response(URI.parse(performance_url))
+        jsonData = resp.body
+        networkPerformanceData = JSON.parse(jsonData)
+        data_INFO = networkPerformanceData['servicestatus']['performance_data']
+        data_INFO = arrowDOWN + data_INFO[/\in=(.*?)Mb/,1].to_f.round(1).to_s + arrowUP + data_INFO[/\out=(.*?)Mb/,1].to_f.round(1).to_s
+        send_event(graphchild['reference'], pointsUP: data_UP, pointsDOWN: data_DOWN, performance: data_INFO)
     end
-    # getting performance data to display
-    resp = Net::HTTP.get_response(URI.parse(network500performanceurl))
-    jsonData = resp.body
-    networkPerformanceData500 = JSON.parse(jsonData)
-    data500Info = networkPerformanceData500['servicestatus']['performance_data']
-    data500Info = arrowDOWN + data500Info[/\in=(.*?)Mb/,1].to_f.round(1).to_s + arrowUP + data500Info[/\out=(.*?)Mb/,1].to_f.round(1).to_s
-    send_event(:network500, pointsUP: data500UP, pointsDOWN: data500DOWN, performance: data500Info)
-  
-    resp = Net::HTTP.get_response(URI.parse(network100url))
-    jsonData = resp.body
-    networkData100 = JSON.parse(jsonData)
-    counter = 0
-    networkData100['data']['row'].each do |child|
-        if child['v'][0] != "NaN" and child['v'][1] != "NaN"
-            data100UP.push({ "x" => counter, "y" => child['v'][0].to_f})
-            data100DOWN.push({ "x" => counter, "y" => child['v'][1].to_f})
-            counter += 1
-        end
-    end
-    resp = Net::HTTP.get_response(URI.parse(network100performanceurl))
-    jsonData = resp.body
-    networkPerformanceData100 = JSON.parse(jsonData)
-    data100Info = networkPerformanceData100['servicestatus']['performance_data']
-    data100Info = arrowDOWN + data100Info[/\in=(.*?)Mb/,1].to_f.round(1).to_s + arrowUP + data100Info[/\out=(.*?)Mb/,1].to_f.round(1).to_s
-    send_event(:network100, pointsUP: data100UP, pointsDOWN: data100DOWN, performance: data100Info)
 end
