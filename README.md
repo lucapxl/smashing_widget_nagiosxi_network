@@ -8,9 +8,9 @@ TODO
 
 ## Installation and Configuration
 
-This widget uses `open-uri` and `json`. make sure to add them in your dashboard Gemfile
+This widget uses `rest-client` and `json`. make sure to add them in your dashboard Gemfile
 ```Gemfile
-gem 'open-uri'
+gem 'rest-client'
 gem 'json'
 ```
 and to run the update command to download and install them.

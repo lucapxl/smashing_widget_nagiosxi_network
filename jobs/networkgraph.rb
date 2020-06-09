@@ -1,4 +1,4 @@
-require 'open-uri'
+require 'rest-client'
 require 'json'
 
 ########################################################################################################
@@ -37,13 +37,23 @@ SCHEDULER.every "60s", first_in: 0 do |job|
         data_INFO = ''
 
         # getting data point to create the graph
-        network_url = 'http://' + nagiosHOST + '/nagiosxi/api/v1/objects/rrdexport?apikey=' + apiKey + '&host_name=' + graphchild['host'] + '&service_description=' + graphchild['service'] + '&start=' + start.to_s
+        network_url = 'https://' + nagiosHOST + '/nagiosxi/api/v1/objects/rrdexport?apikey=' + apiKey + '&host_name=' + graphchild['host'] + '&service_description=' + graphchild['service'] + '&start=' + start.to_s
 
-        performance_url = 'http://' + nagiosHOST + '/nagiosxi/api/v1/objects/servicestatus?apikey=' + apiKey + '&host_name=' + graphchild['host'] + '&service_description=' + graphchild['service'] 
+        performance_url = 'https://' + nagiosHOST + '/nagiosxi/api/v1/objects/servicestatus?apikey=' + apiKey + '&host_name=' + graphchild['host'] + '&service_description=' + graphchild['service'] 
 
-        resp = Net::HTTP.get_response(URI.parse(network_url))
-        jsonData = resp.body
-        network_data = JSON.parse(jsonData)
+        network_data = ""
+        resp = RestClient::Request.new({
+            method: :get,
+            url: network_url,
+            verify_ssl: false
+        }).execute do |resp, request, result|
+            case resp.code
+            when 200 
+                network_data = JSON.parse(resp.to_str)
+            else
+                fail "error: #{resp.to_str}"
+            end
+        end 
         counter = 0
         network_data['data']['row'].each do |child|
             if child['v'][0] != "NaN" and child['v'][1] != "NaN"
@@ -53,10 +63,20 @@ SCHEDULER.every "60s", first_in: 0 do |job|
             end
         end
         # getting performance data to display
-        resp = Net::HTTP.get_response(URI.parse(performance_url))
-        jsonData = resp.body
-        networkPerformanceData = JSON.parse(jsonData)
-        data_INFO = networkPerformanceData['servicestatus']['performance_data']
+        networkPerformanceData = ""
+        respPerf = RestClient::Request.new({
+            method: :get,
+            url: performance_url,
+            verify_ssl: false
+        }).execute do |respPerf, request, result|
+            case respPerf.code
+            when 200
+                networkPerformanceData = JSON.parse(respPerf.to_str)
+            else
+                fail "error: #{respPerf.to_str}"
+            end
+        end           
+        data_INFO = networkPerformanceData['servicestatus'][0]['perfdata']
         data_INFO = arrowDOWN + data_INFO[/\in=(.*?)Mb/,1].to_f.round(1).to_s + arrowUP + data_INFO[/\out=(.*?)Mb/,1].to_f.round(1).to_s
         send_event(graphchild['reference'], pointsUP: data_UP, pointsDOWN: data_DOWN, performance: data_INFO)
     end
